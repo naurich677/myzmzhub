@@ -351,12 +351,13 @@ function MovieDetailView({ movie, onClose }: { movie: Movie; onClose: () => void
   const [activeSource, setActiveSource] = useState(0);
   const [iframeLoaded, setIframeLoaded] = useState(false);
 
-  // СТРОГО РУССКИЕ БАЛАНСЕРЫ С ВЫБОРОМ ОЗВУЧЕК
+  // РУССКИЕ ВИДЕОБАЛАНСЕРЫ С ОЗВУЧКОЙ
   const SOURCES = [
-    { id: 0, name: 'Kinobox (Все озвучки)', getUrl: (id: string) => `https://kinobox.tv/api/players?imdb=${id}` },
-    { id: 1, name: 'HDRezka', getUrl: (id: string) => `https://voidboost.net/embed/${id}` },
-    { id: 2, name: 'Alloha TV', getUrl: (id: string) => `https://alloha.tv/?imdb=${id}` },
-    { id: 3, name: 'Kodik', getUrl: (id: string) => `https://kodik.cc/find-player?imdbID=${id}` }
+    { id: 0, name: 'Alloha', getUrl: (id: string) => `https://alloha.tv/embed?imdb_id=${id}` },
+    { id: 1, name: 'Kodik', getUrl: (id: string) => `https://kodik.cc/find-player?imdbID=${id}` },
+    { id: 2, name: 'HDVB', getUrl: (id: string) => `https://voidboost.net/embed/${id}` },
+    { id: 3, name: 'Collaps', getUrl: (id: string) => `https://api.collaps.cc/embed/player?id=${id}` },
+    { id: 4, name: 'Ashdi', getUrl: (id: string) => `https://ashdi.vip/embed/${id}` }
   ];
 
   if (isPlaying) {
