@@ -400,6 +400,8 @@ function MovieDetailView({ movie, onClose }: { movie: Movie; onClose: () => void
               className={`w-full h-full absolute inset-0 z-10 transition-opacity duration-500 ${iframeLoaded ? 'opacity-100' : 'opacity-0'}`}
               allowFullScreen
               allow="autoplay; fullscreen"
+              sandbox="allow-scripts allow-same-origin allow-forms"
+              referrerPolicy="no-referrer"
               frameBorder="0"
               title="Movie Player"
               onLoad={() => setIframeLoaded(true)}
