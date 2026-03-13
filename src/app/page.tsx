@@ -351,13 +351,13 @@ function MovieDetailView({ movie, onClose }: { movie: Movie; onClose: () => void
   const [activeSource, setActiveSource] = useState(0);
   const [iframeLoaded, setIframeLoaded] = useState(false);
 
-  // РУССКИЕ ВИДЕОБАЛАНСЕРЫ С ОЗВУЧКОЙ
+  // РУССКИЕ ВИДЕОБАЛАНСЕРЫ С ОЗВУЧКОЙ (проверенные)
   const SOURCES = [
     { id: 0, name: 'Alloha', getUrl: (id: string) => `https://alloha.tv/embed?imdb_id=${id}` },
-    { id: 1, name: 'Kodik', getUrl: (id: string) => `https://kodik.cc/find-player?imdbID=${id}` },
-    { id: 2, name: 'HDVB', getUrl: (id: string) => `https://voidboost.net/embed/${id}` },
-    { id: 3, name: 'Collaps', getUrl: (id: string) => `https://api.collaps.cc/embed/player?id=${id}` },
-    { id: 4, name: 'Ashdi', getUrl: (id: string) => `https://ashdi.vip/embed/${id}` }
+    { id: 1, name: 'Kodik', getUrl: (id: string) => `https://kodik.cc/serial/${id}/720p` },
+    { id: 2, name: 'Collaps', getUrl: (id: string) => `https://apicollaps.cc/embed/player?id=${id}` },
+    { id: 3, name: 'IframeDB', getUrl: (id: string) => `https://iframeDB.net/embed/${id}` },
+    { id: 4, name: 'Vibix', getUrl: (id: string) => `https://vibix.to/embed/${id}` }
   ];
 
   if (isPlaying) {
