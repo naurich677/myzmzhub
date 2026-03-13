@@ -351,13 +351,13 @@ function MovieDetailView({ movie, onClose }: { movie: Movie; onClose: () => void
   const [activeSource, setActiveSource] = useState(0);
   const [iframeLoaded, setIframeLoaded] = useState(false);
 
-  // РУССКИЕ ВИДЕОБАЛАНСЕРЫ С ОЗВУЧКОЙ (проверенные)
+  // РАБОЧИЕ ВИДЕОБАЛАНСЕРЫ С ОЗВУЧКОЙ (проверенные)
   const SOURCES = [
-    { id: 0, name: 'Alloha', getUrl: (id: string) => `https://alloha.tv/embed?imdb_id=${id}` },
-    { id: 1, name: 'Kodik', getUrl: (id: string) => `https://kodik.cc/serial/${id}/720p` },
-    { id: 2, name: 'Collaps', getUrl: (id: string) => `https://apicollaps.cc/embed/player?id=${id}` },
-    { id: 3, name: 'IframeDB', getUrl: (id: string) => `https://iframeDB.net/embed/${id}` },
-    { id: 4, name: 'Vibix', getUrl: (id: string) => `https://vibix.to/embed/${id}` }
+    { id: 0, name: 'VidSrc', getUrl: (id: string) => `https://vidsrc-embed.su/embed/movie/${id}` },
+    { id: 1, name: '2Embed', getUrl: (id: string) => `https://www.2embed.cc/embed/${id}` },
+    { id: 2, name: 'EmbedSu', getUrl: (id: string) => `https://embed.su/embed/movie/${id}` },
+    { id: 3, name: 'MultiEmbed', getUrl: (id: string) => `https://multiembed.mov/?video_id=${id}` },
+    { id: 4, name: 'VidSrc PRO', getUrl: (id: string) => `https://vidsrc.pro/embed/movie/${id}` }
   ];
 
   if (isPlaying) {
