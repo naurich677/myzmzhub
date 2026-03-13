@@ -345,13 +345,29 @@ export default function App() {
   );
 }
 
+// --- VIDEO SEARCH RESULT INTERFACE ---
+interface VideoSearchResult {
+  id: string;
+  title: string;
+  duration: number;
+  durationText: string;
+  thumbnail: string;
+  source: 'vk' | 'youtube';
+  embedUrl: string;
+}
+
 // --- MOVIE DETAIL / MULTI-SERVER PLAYER VIEW ---
 function MovieDetailView({ movie, onClose }: { movie: Movie; onClose: () => void }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [activeSource, setActiveSource] = useState(0);
   const [iframeLoaded, setIframeLoaded] = useState(false);
+  const [videoSearchResults, setVideoSearchResults] = useState<VideoSearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState('');
+  const [showVideoSearch, setShowVideoSearch] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState<VideoSearchResult | null>(null);
 
-  // РАБОЧИЕ ВИДЕОБАЛАНСЕРЫ (без рекламы, с русскими озвучками)
+  // Стандартные видеобалансеры
   const SOURCES = [
     { id: 0, name: 'VidFast', getUrl: (id: string) => `https://vidfast.pro/movie/${id}` },
     { id: 1, name: '111Movies', getUrl: (id: string) => `https://111movies.com/movie/${id}` },
@@ -360,6 +376,79 @@ function MovieDetailView({ movie, onClose }: { movie: Movie; onClose: () => void
     { id: 4, name: '2Embed CC', getUrl: (id: string) => `https://www.2embed.cc/embed/${id}` }
   ];
 
+  // Поиск видео в VK и YouTube
+  const searchVideos = async () => {
+    setIsSearching(true);
+    setSearchError('');
+    setVideoSearchResults([]);
+    setShowVideoSearch(true);
+
+    try {
+      const response = await fetch(`/api/video-search?q=${encodeURIComponent(movie.title)}&minDuration=2400`);
+      const data = await response.json();
+
+      if (data.results && data.results.length > 0) {
+        setVideoSearchResults(data.results);
+      } else {
+        setSearchError('Фильм не найден в VK или YouTube');
+      }
+    } catch (error) {
+      setSearchError('Ошибка поиска видео');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Если выбрано видео из поиска
+  if (isPlaying && selectedVideo) {
+    return (
+      <div className="fixed inset-0 z-50 bg-[#050505] flex flex-col animate-fade-in w-full max-w-md mx-auto sm:border-x sm:border-[#1A1A1E]">
+        <div className="px-3 py-3 flex flex-col gap-2.5 bg-black/95 backdrop-blur-xl border-b border-[#1A1A1E] z-10">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 overflow-hidden">
+              {selectedVideo.source === 'youtube' ? (
+                <div className="w-4 h-4 bg-red-600 rounded-sm flex items-center justify-center shrink-0">
+                  <Play className="w-2 h-2 text-white" fill="white" />
+                </div>
+              ) : (
+                <div className="w-4 h-4 bg-blue-500 rounded-sm flex items-center justify-center shrink-0 text-[8px] font-bold text-white">VK</div>
+              )}
+              <span className="text-white font-bold text-[13px] truncate">{selectedVideo.title}</span>
+            </div>
+            <button onClick={() => { setIsPlaying(false); setSelectedVideo(null); }} className="w-7 h-7 rounded-full bg-[#1A1A1E] flex items-center justify-center shrink-0 active:bg-[#222] transition-colors">
+              <X className="w-4 h-4 text-[#8E8E93]" />
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-[#8E8E93]">{selectedVideo.durationText}</span>
+            <span className="text-[10px] text-[#A855F7] uppercase font-bold">{selectedVideo.source === 'youtube' ? 'YouTube' : 'VK Video'}</span>
+          </div>
+        </div>
+        
+        <div className="flex-1 w-full relative bg-black flex items-center justify-center">
+          {!iframeLoaded && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center z-0 gap-3">
+               <Loader2 className="w-8 h-8 animate-spin text-[#A855F7]" />
+               <span className="text-[#666] text-[11px] font-medium uppercase tracking-widest animate-pulse">Загрузка плеера...</span>
+            </div>
+          )}
+          <iframe
+            src={selectedVideo.embedUrl}
+            className={`w-full h-full absolute inset-0 z-10 transition-opacity duration-500 ${iframeLoaded ? 'opacity-100' : 'opacity-0'}`}
+            allowFullScreen
+            allow="autoplay; fullscreen"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+            referrerPolicy="no-referrer"
+            frameBorder="0"
+            title="Video Player"
+            onLoad={() => setIframeLoaded(true)}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Стандартный плеер с балансерами
   if (isPlaying) {
     return (
       <div className="fixed inset-0 z-50 bg-[#050505] flex flex-col animate-fade-in w-full max-w-md mx-auto sm:border-x sm:border-[#1A1A1E]">
@@ -417,6 +506,77 @@ function MovieDetailView({ movie, onClose }: { movie: Movie; onClose: () => void
     );
   }
 
+  // Экран поиска видео
+  if (showVideoSearch) {
+    return (
+      <div className="fixed inset-0 z-40 bg-black flex flex-col animate-slide-up w-full max-w-md mx-auto sm:border-x sm:border-[#1A1A1E]">
+        <div className="px-3 pt-10 pb-3 flex items-center gap-3 border-b border-[#1A1A1E]">
+          <button onClick={() => setShowVideoSearch(false)} className="w-8 h-8 rounded-full flex items-center justify-center bg-[#0A0A0C] border border-[#1A1A1E]">
+            <ChevronLeft className="w-4 h-4 text-white" />
+          </button>
+          <div>
+            <h2 className="text-white font-bold text-[14px]">Поиск: {movie.title}</h2>
+            <p className="text-[#666] text-[10px]">VK Video и YouTube (от 40 мин)</p>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-3">
+          {isSearching ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <Loader2 className="w-10 h-10 animate-spin text-[#A855F7]" />
+              <span className="text-[#666] text-[12px] mt-3">Поиск видео...</span>
+            </div>
+          ) : searchError ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <Film className="w-12 h-12 text-[#333] mb-3" />
+              <p className="text-[#888] text-[12px]">{searchError}</p>
+              <button onClick={searchVideos} className="mt-4 px-4 py-2 bg-[#A855F7] rounded-full text-white text-[11px] font-bold">
+                Повторить поиск
+              </button>
+            </div>
+          ) : videoSearchResults.length > 0 ? (
+            <div className="space-y-2">
+              {videoSearchResults.map((video, index) => (
+                <button
+                  key={video.id}
+                  onClick={() => { setSelectedVideo(video); setIsPlaying(true); }}
+                  className="w-full flex gap-3 p-2 bg-[#0A0A0C] border border-[#1A1A1E] rounded-[12px] active:bg-[#111] transition-colors text-left"
+                >
+                  <div className="w-[100px] h-[56px] bg-[#16161A] rounded-[8px] overflow-hidden shrink-0 relative">
+                    {video.thumbnail && (
+                      <img src={video.thumbnail} className="w-full h-full object-cover" alt="" />
+                    )}
+                    <div className="absolute bottom-1 right-1 bg-black/80 px-1.5 py-0.5 rounded text-[8px] text-white font-medium">
+                      {video.durationText}
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+                    <p className="text-white text-[12px] font-medium line-clamp-2 mb-1">{video.title}</p>
+                    <div className="flex items-center gap-2">
+                      {video.source === 'youtube' ? (
+                        <span className="flex items-center gap-1 text-[10px] text-red-500 font-bold">
+                          <div className="w-3 h-3 bg-red-600 rounded-sm flex items-center justify-center">
+                            <Play className="w-1.5 h-1.5 text-white" fill="white" />
+                          </div>
+                          YouTube
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-[10px] text-blue-400 font-bold">
+                          <div className="w-3 h-3 bg-blue-500 rounded-sm text-[6px] flex items-center justify-center text-white font-bold">VK</div>
+                          VK Video
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-40 bg-black flex flex-col animate-slide-up w-full max-w-md mx-auto sm:border-x sm:border-[#1A1A1E]">
       <button onClick={onClose} className="absolute top-12 left-4 w-9 h-9 rounded-full flex items-center justify-center bg-black/50 backdrop-blur-lg border border-white/10 z-50 shadow-[0_4px_15px_rgba(0,0,0,0.5)]">
@@ -468,9 +628,13 @@ function MovieDetailView({ movie, onClose }: { movie: Movie; onClose: () => void
       </div>
 
       <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/90 to-transparent pb-8 z-20">
-        <button onClick={() => setIsPlaying(true)} className="w-full h-[56px] bg-[#5B21B6] rounded-[16px] flex items-center justify-center gap-2 font-bold text-[16px] text-white shadow-[0_4px_25px_rgba(91,33,182,0.6)] active:bg-[#4C1D95] transition-colors">
+        <button onClick={() => setIsPlaying(true)} className="w-full h-[56px] bg-[#5B21B6] rounded-[16px] flex items-center justify-center gap-2 font-bold text-[16px] text-white shadow-[0_4px_25px_rgba(91,33,182,0.6)] active:bg-[#4C1D95] transition-colors mb-3">
           <Play className="w-5 h-5" fill="currentColor" />
           Смотреть фильм
+        </button>
+        <button onClick={searchVideos} className="w-full h-[44px] bg-[#1A1A1E] border border-[#2A2A2E] rounded-[12px] flex items-center justify-center gap-2 font-medium text-[13px] text-[#A0A0A0] active:bg-[#222] transition-colors">
+          <Search className="w-4 h-4" />
+          Найти в VK / YouTube
         </button>
       </div>
     </div>
