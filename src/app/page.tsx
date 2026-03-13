@@ -351,13 +351,13 @@ function MovieDetailView({ movie, onClose }: { movie: Movie; onClose: () => void
   const [activeSource, setActiveSource] = useState(0);
   const [iframeLoaded, setIframeLoaded] = useState(false);
 
-  // РАБОЧИЕ ВИДЕОБАЛАНСЕРЫ С ОЗВУЧКОЙ (проверенные)
+  // РАБОЧИЕ ВИДЕОБАЛАНСЕРЫ (без рекламы, с русскими озвучками)
   const SOURCES = [
-    { id: 0, name: 'VidSrc', getUrl: (id: string) => `https://vidsrc-embed.su/embed/movie/${id}` },
-    { id: 1, name: '2Embed', getUrl: (id: string) => `https://www.2embed.cc/embed/${id}` },
-    { id: 2, name: 'EmbedSu', getUrl: (id: string) => `https://embed.su/embed/movie/${id}` },
-    { id: 3, name: 'MultiEmbed', getUrl: (id: string) => `https://multiembed.mov/?video_id=${id}` },
-    { id: 4, name: 'VidSrc PRO', getUrl: (id: string) => `https://vidsrc.pro/embed/movie/${id}` }
+    { id: 0, name: 'VidFast', getUrl: (id: string) => `https://vidfast.pro/movie/${id}` },
+    { id: 1, name: '111Movies', getUrl: (id: string) => `https://111movies.com/movie/${id}` },
+    { id: 2, name: 'VidSrc RU', getUrl: (id: string) => `https://vidsrc-embed.ru/embed/movie/${id}` },
+    { id: 3, name: 'VidSrc SU', getUrl: (id: string) => `https://vidsrc-embed.su/embed/movie/${id}` },
+    { id: 4, name: '2Embed CC', getUrl: (id: string) => `https://www.2embed.cc/embed/${id}` }
   ];
 
   if (isPlaying) {
