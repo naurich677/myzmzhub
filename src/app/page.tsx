@@ -236,7 +236,7 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-[100dvh] bg-black text-white font-sans overflow-hidden flex justify-center selection:bg-[#A855F7]/30 relative">
+    <div className="min-h-screen bg-black text-white font-sans overflow-hidden flex selection:bg-[#A855F7]/30 relative">
       <style>{`
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -249,73 +249,109 @@ export default function App() {
         .glow-red { background: radial-gradient(circle at right, rgba(153, 27, 27, 0.4) 0%, transparent 70%); }
       `}</style>
 
-      {/* Main Container */}
-      <div className="w-full max-w-md bg-[#000000] relative flex flex-col h-[100dvh] overflow-hidden sm:border-x sm:border-[#1A1A1E]" onClick={(e) => {if(!(e.target as HTMLElement).closest('.relative.z-50')) setIsMenuOpen(false);}}>
-        
-        {/* Header */}
-        {view === 'home' && (
-          <div className="px-3 pt-10 pb-1.5 flex justify-between items-center z-10">
-            <HeaderSwitch />
-            <div className="flex gap-1.5">
-              <button className="w-7 h-7 rounded-full flex items-center justify-center bg-[#0A0A0C] border border-[#1A1A1E] shadow-sm">
-                <BarChart3 className="w-3 h-3 text-[#A0A0A0]" />
+      {/* Desktop Sidebar - показывается только на больших экранах */}
+      <div className="hidden lg:flex flex-col w-64 bg-[#0A0A0C] border-r border-[#1A1A1E] p-6 shrink-0">
+        <div className="flex items-center gap-3 mb-8">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${appMode === 'finance' ? 'bg-[#142A1E]' : 'bg-[#1A1324]'}`}>
+            {appMode === 'finance' ? <Wallet className="w-5 h-5 text-[#4ADE80]" /> : <Film className="w-5 h-5 text-[#A855F7]" />}
+          </div>
+          <div>
+            <h1 className="text-white font-bold text-lg">Z-App</h1>
+            <p className="text-[#666] text-xs">{appMode === 'finance' ? 'Кошелек' : 'Трекер'}</p>
+          </div>
+        </div>
+
+        <nav className="space-y-2">
+          <button onClick={() => { setAppMode('finance'); setView('home'); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${appMode === 'finance' ? 'bg-[#142A1E] text-[#4ADE80]' : 'text-[#8E8E93] hover:bg-[#16161A]'}`}>
+            <Wallet className="w-5 h-5" />
+            <span className="font-medium">Кошелек</span>
+          </button>
+          <button onClick={() => { setAppMode('tracker'); setTrackerTab('movies'); setView('home'); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${appMode === 'tracker' && trackerTab === 'movies' ? 'bg-[#1A1324] text-[#A855F7]' : 'text-[#8E8E93] hover:bg-[#16161A]'}`}>
+            <Film className="w-5 h-5" />
+            <span className="font-medium">Кино</span>
+          </button>
+          <button onClick={() => { setAppMode('tracker'); setTrackerTab('habits'); setView('home'); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${appMode === 'tracker' && trackerTab === 'habits' ? 'bg-[#1A1324] text-[#A855F7]' : 'text-[#8E8E93] hover:bg-[#16161A]'}`}>
+            <CheckSquare className="w-5 h-5" />
+            <span className="font-medium">Привычки</span>
+          </button>
+        </nav>
+
+        <div className="mt-auto pt-6 border-t border-[#1A1A1E]">
+          <div className="flex items-center gap-2 text-[#666] text-xs">
+            <Settings className="w-4 h-4" />
+            <span>Настройки</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Container - адаптивный */}
+      <div className="flex-1 flex justify-center overflow-hidden" onClick={(e) => {if(!(e.target as HTMLElement).closest('.relative.z-50')) setIsMenuOpen(false);}}>
+        <div className="w-full max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl bg-[#000000] relative flex flex-col h-screen overflow-hidden border-x border-[#1A1A1E]">
+          
+          {/* Header - адаптивный */}
+          {view === 'home' && (
+            <div className="px-3 pt-6 md:pt-8 lg:pt-10 pb-1.5 flex justify-between items-center z-10">
+              <HeaderSwitch />
+              <div className="flex gap-1.5">
+                <button className="w-8 h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center bg-[#0A0A0C] border border-[#1A1A1E] shadow-sm">
+                  <BarChart3 className="w-3.5 h-3.5 text-[#A0A0A0]" />
+                </button>
+                <button className="w-8 h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center bg-[#0A0A0C] border border-[#1A1A1E] shadow-sm">
+                  <Settings className="w-3.5 h-3.5 text-[#A0A0A0]" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Content Views */}
+          {view === 'home' && appMode === 'finance' && <FinanceHomeView balance={balance} totalIncome={totalIncome} totalExpense={totalExpense} transactions={transactions} onDelete={(id) => setTransactions(p=>p.filter(t=>t.id!==id))} />}
+          
+          {view === 'home' && appMode === 'tracker' && (
+            <TrackerHomeView 
+              habits={habits} setHabits={setHabits} 
+              movies={movies} setMovies={setMovies} 
+              onDeleteMovie={deleteMovie} 
+              onSelectMovie={(m) => { setSelectedMovie(m); setView('movieDetail'); }} 
+              completedToday={completedHabitsToday} 
+              trackerTab={trackerTab} setTrackerTab={setTrackerTab} 
+            />
+          )}
+
+          {/* Movie Detail / Player View */}
+          {view === 'movieDetail' && selectedMovie && (
+            <MovieDetailView movie={selectedMovie} onClose={() => setView('home')} />
+          )}
+
+          {/* Floating Bottom Nav - адаптивный */}
+          {view === 'home' && (
+            <div className="absolute bottom-6 md:bottom-8 left-0 right-0 flex justify-center items-end gap-3 md:gap-4 px-3 z-10">
+              {appMode === 'finance' ? (
+                <button onClick={() => setView('scan')} className="w-11 h-11 md:w-12 md:h-12 rounded-[14px] flex items-center justify-center bg-[#0F0F12] border border-[#1F1F23] active:bg-[#16161A] shadow-[0_4px_15px_rgba(0,0,0,0.5)]">
+                  <ScanLine className="w-4 h-4 md:w-5 md:h-5 text-[#A0A0A0]" />
+                </button>
+              ) : trackerTab === 'movies' ? (
+                <button onClick={() => setShowMoviePopup(true)} className="w-11 h-11 md:w-12 md:h-12 rounded-full flex items-center justify-center bg-[#2D1643] border border-[#4C1D95] shadow-[0_0_15px_rgba(168,85,247,0.3)] active:bg-[#3B1F54] transition-colors">
+                  <Link2 className="w-4 h-4 md:w-5 md:h-5 text-[#C084FC]" />
+                </button>
+              ) : (
+                <button className="w-11 h-11 md:w-12 md:h-12 rounded-[14px] flex items-center justify-center bg-transparent border border-transparent pointer-events-none"></button>
+              )}
+
+              <button onClick={handleVoiceRecord} className={`w-14 h-14 md:w-16 md:h-16 rounded-[18px] flex items-center justify-center border transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.6)] ${isRecording ? (appMode === 'finance' ? 'bg-[#112A1A] border-[#4ADE80] shadow-[0_0_20px_rgba(74,222,128,0.4)] animate-pulse' : 'bg-[#1A1324] border-[#A855F7] shadow-[0_0_20px_rgba(168,85,247,0.4)] animate-pulse') : 'bg-[#0F0F12] border-[#1F1F23]'}`}>
+                <Mic className={`w-6 h-6 md:w-7 md:h-7 ${isRecording ? 'text-white' : 'text-[#A0A0A0]'}`} strokeWidth={1.5} />
               </button>
-              <button className="w-7 h-7 rounded-full flex items-center justify-center bg-[#0A0A0C] border border-[#1A1A1E] shadow-sm">
-                <Settings className="w-3 h-3 text-[#A0A0A0]" />
+
+              <button 
+                onClick={() => {
+                  if (appMode === 'finance') setView('addTransaction');
+                  else if (trackerTab === 'movies') setShowMoviePopup(true);
+                  else setView('addHabit');
+                }} 
+                className="w-11 h-11 md:w-12 md:h-12 rounded-[14px] flex items-center justify-center bg-[#0F0F12] border border-[#1F1F23] active:bg-[#16161A] shadow-[0_4px_15px_rgba(0,0,0,0.5)]"
+              >
+                <Plus className="w-5 h-5 md:w-6 md:h-6 text-[#A0A0A0]" strokeWidth={1.5} />
               </button>
             </div>
-          </div>
-        )}
-
-        {/* Content Views */}
-        {view === 'home' && appMode === 'finance' && <FinanceHomeView balance={balance} totalIncome={totalIncome} totalExpense={totalExpense} transactions={transactions} onDelete={(id) => setTransactions(p=>p.filter(t=>t.id!==id))} />}
-        
-        {view === 'home' && appMode === 'tracker' && (
-          <TrackerHomeView 
-            habits={habits} setHabits={setHabits} 
-            movies={movies} setMovies={setMovies} 
-            onDeleteMovie={deleteMovie} 
-            onSelectMovie={(m) => { setSelectedMovie(m); setView('movieDetail'); }} 
-            completedToday={completedHabitsToday} 
-            trackerTab={trackerTab} setTrackerTab={setTrackerTab} 
-          />
-        )}
-
-        {/* Movie Detail / Player View */}
-        {view === 'movieDetail' && selectedMovie && (
-          <MovieDetailView movie={selectedMovie} onClose={() => setView('home')} />
-        )}
-
-        {/* Floating Bottom Nav */}
-        {view === 'home' && (
-          <div className="absolute bottom-6 left-0 right-0 flex justify-center items-end gap-3 px-3 z-10">
-            {appMode === 'finance' ? (
-              <button onClick={() => setView('scan')} className="w-[42px] h-[42px] rounded-[14px] flex items-center justify-center bg-[#0F0F12] border border-[#1F1F23] active:bg-[#16161A] shadow-[0_4px_15px_rgba(0,0,0,0.5)]">
-                <ScanLine className="w-4 h-4 text-[#A0A0A0]" />
-              </button>
-            ) : trackerTab === 'movies' ? (
-              <button onClick={() => setShowMoviePopup(true)} className="w-[42px] h-[42px] rounded-full flex items-center justify-center bg-[#2D1643] border border-[#4C1D95] shadow-[0_0_15px_rgba(168,85,247,0.3)] active:bg-[#3B1F54] transition-colors">
-                <Link2 className="w-4 h-4 text-[#C084FC]" />
-              </button>
-            ) : (
-              <button className="w-[42px] h-[42px] rounded-[14px] flex items-center justify-center bg-transparent border border-transparent pointer-events-none"></button>
-            )}
-
-            <button onClick={handleVoiceRecord} className={`w-[52px] h-[52px] rounded-[16px] flex items-center justify-center border transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.6)] ${isRecording ? (appMode === 'finance' ? 'bg-[#112A1A] border-[#4ADE80] shadow-[0_0_20px_rgba(74,222,128,0.4)] animate-pulse' : 'bg-[#1A1324] border-[#A855F7] shadow-[0_0_20px_rgba(168,85,247,0.4)] animate-pulse') : 'bg-[#0F0F12] border-[#1F1F23]'}`}>
-              <Mic className={`w-[22px] h-[22px] ${isRecording ? 'text-white' : 'text-[#A0A0A0]'}`} strokeWidth={1.5} />
-            </button>
-
-            <button 
-              onClick={() => {
-                if (appMode === 'finance') setView('addTransaction');
-                else if (trackerTab === 'movies') setShowMoviePopup(true);
-                else setView('addHabit');
-              }} 
-              className="w-[42px] h-[42px] rounded-[14px] flex items-center justify-center bg-[#0F0F12] border border-[#1F1F23] active:bg-[#16161A] shadow-[0_4px_15px_rgba(0,0,0,0.5)]"
-            >
-              <Plus className="w-5 h-5 text-[#A0A0A0]" strokeWidth={1.5} />
-            </button>
-          </div>
         )}
 
         {/* Action Views */}
@@ -340,10 +376,11 @@ export default function App() {
             </div>
           </div>
         )}
+          </div>
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
 // --- VIDEO SEARCH RESULT INTERFACE ---
 interface VideoSearchResult {
