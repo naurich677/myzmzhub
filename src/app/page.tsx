@@ -384,27 +384,39 @@ function MovieDetailView({ movie, onClose }: { movie: Movie; onClose: () => void
     setShowVideoSearch(true);
 
     try {
-      // Ищем по русскому названию + оригинальное + год
-      const searchQuery = `${movie.title} ${movie.engTitle} ${movie.year}`.trim();
-      console.log('Searching for:', searchQuery);
-      
-      const response = await fetch(`/api/video-search?q=${encodeURIComponent(searchQuery)}&minDuration=2400`);
-      const data = await response.json();
-      console.log('Search results:', data);
+      // Пробуем несколько вариантов поиска
+      const searchQueries = [
+        movie.title, // Русское название
+        movie.engTitle, // Оригинальное название
+        `${movie.title} ${movie.year}`, // С годом
+      ].filter(Boolean);
 
-      if (data.results && data.results.length > 0) {
-        setVideoSearchResults(data.results);
-      } else {
-        // Если не нашли, пробуем только название фильма
-        const response2 = await fetch(`/api/video-search?q=${encodeURIComponent(movie.title)}&minDuration=2400`);
-        const data2 = await response2.json();
-        console.log('Fallback results:', data2);
+      let allResults: any[] = [];
+      
+      for (const query of searchQueries) {
+        if (!query) continue;
+        console.log('Searching for:', query);
         
-        if (data2.results && data2.results.length > 0) {
-          setVideoSearchResults(data2.results);
-        } else {
-          setSearchError(`Фильм "${movie.title}" не найден в VK или YouTube`);
+        const response = await fetch(`/api/video-search?q=${encodeURIComponent(query)}&minDuration=2400`);
+        const data = await response.json();
+        console.log('Results for', query, ':', data.totalResults);
+        
+        if (data.results && data.results.length > 0) {
+          allResults = [...allResults, ...data.results];
         }
+      }
+
+      // Убираем дубликаты по id
+      const uniqueResults = allResults.filter((result, index, self) =>
+        index === self.findIndex(r => r.id === result.id)
+      );
+
+      console.log('Total unique results:', uniqueResults.length);
+
+      if (uniqueResults.length > 0) {
+        setVideoSearchResults(uniqueResults);
+      } else {
+        setSearchError(`Фильм "${movie.title}" не найден в VK или YouTube`);
       }
     } catch (error) {
       console.error('Search error:', error);
