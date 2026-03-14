@@ -386,27 +386,29 @@ function MovieDetailView({ movie, onClose }: { movie: Movie; onClose: () => void
     try {
       // Ищем по русскому названию + оригинальное + год
       const searchQuery = `${movie.title} ${movie.engTitle} ${movie.year}`.trim();
+      console.log('Searching for:', searchQuery);
+      
       const response = await fetch(`/api/video-search?q=${encodeURIComponent(searchQuery)}&minDuration=2400`);
       const data = await response.json();
+      console.log('Search results:', data);
 
       if (data.results && data.results.length > 0) {
         setVideoSearchResults(data.results);
       } else {
-        // Если не нашли, пробуем только оригинальное название
-        if (movie.engTitle) {
-          const response2 = await fetch(`/api/video-search?q=${encodeURIComponent(movie.engTitle)}&minDuration=2400`);
-          const data2 = await response2.json();
-          if (data2.results && data2.results.length > 0) {
-            setVideoSearchResults(data2.results);
-          } else {
-            setSearchError('Фильм не найден в VK или YouTube');
-          }
+        // Если не нашли, пробуем только название фильма
+        const response2 = await fetch(`/api/video-search?q=${encodeURIComponent(movie.title)}&minDuration=2400`);
+        const data2 = await response2.json();
+        console.log('Fallback results:', data2);
+        
+        if (data2.results && data2.results.length > 0) {
+          setVideoSearchResults(data2.results);
         } else {
-          setSearchError('Фильм не найден в VK или YouTube');
+          setSearchError(`Фильм "${movie.title}" не найден в VK или YouTube`);
         }
       }
     } catch (error) {
-      setSearchError('Ошибка поиска видео');
+      console.error('Search error:', error);
+      setSearchError('Ошибка поиска видео. Проверьте интернет.');
     } finally {
       setIsSearching(false);
     }
