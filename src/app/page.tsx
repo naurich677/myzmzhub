@@ -628,13 +628,13 @@ function MovieDetailView({ movie, onClose }: { movie: Movie; onClose: () => void
       </div>
 
       <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/90 to-transparent pb-8 z-20">
-        <button onClick={() => setIsPlaying(true)} className="w-full h-[56px] bg-[#5B21B6] rounded-[16px] flex items-center justify-center gap-2 font-bold text-[16px] text-white shadow-[0_4px_25px_rgba(91,33,182,0.6)] active:bg-[#4C1D95] transition-colors mb-3">
-          <Play className="w-5 h-5" fill="currentColor" />
-          Смотреть фильм
+        <button onClick={searchVideos} className="w-full h-[56px] bg-gradient-to-r from-[#0077FF] to-[#FF0000] rounded-[16px] flex items-center justify-center gap-3 font-bold text-[15px] text-white shadow-[0_4px_25px_rgba(0,119,255,0.4)] active:opacity-80 transition-colors mb-3">
+          <Search className="w-5 h-5" />
+          🔍 VK / YouTube поиск
         </button>
-        <button onClick={searchVideos} className="w-full h-[44px] bg-[#1A1A1E] border border-[#2A2A2E] rounded-[12px] flex items-center justify-center gap-2 font-medium text-[13px] text-[#A0A0A0] active:bg-[#222] transition-colors">
-          <Search className="w-4 h-4" />
-          Найти в VK / YouTube
+        <button onClick={() => setIsPlaying(true)} className="w-full h-[44px] bg-[#1A1A1E] border border-[#2A2A2E] rounded-[12px] flex items-center justify-center gap-2 font-medium text-[13px] text-[#A0A0A0] active:bg-[#222] transition-colors">
+          <Play className="w-4 h-4" />
+          Смотреть через плеер
         </button>
       </div>
     </div>
