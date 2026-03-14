@@ -384,13 +384,26 @@ function MovieDetailView({ movie, onClose }: { movie: Movie; onClose: () => void
     setShowVideoSearch(true);
 
     try {
-      const response = await fetch(`/api/video-search?q=${encodeURIComponent(movie.title)}&minDuration=2400`);
+      // Ищем по русскому названию + оригинальное + год
+      const searchQuery = `${movie.title} ${movie.engTitle} ${movie.year}`.trim();
+      const response = await fetch(`/api/video-search?q=${encodeURIComponent(searchQuery)}&minDuration=2400`);
       const data = await response.json();
 
       if (data.results && data.results.length > 0) {
         setVideoSearchResults(data.results);
       } else {
-        setSearchError('Фильм не найден в VK или YouTube');
+        // Если не нашли, пробуем только оригинальное название
+        if (movie.engTitle) {
+          const response2 = await fetch(`/api/video-search?q=${encodeURIComponent(movie.engTitle)}&minDuration=2400`);
+          const data2 = await response2.json();
+          if (data2.results && data2.results.length > 0) {
+            setVideoSearchResults(data2.results);
+          } else {
+            setSearchError('Фильм не найден в VK или YouTube');
+          }
+        } else {
+          setSearchError('Фильм не найден в VK или YouTube');
+        }
       }
     } catch (error) {
       setSearchError('Ошибка поиска видео');

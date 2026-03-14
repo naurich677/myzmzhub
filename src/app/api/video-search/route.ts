@@ -34,7 +34,6 @@ function formatDuration(seconds: number): string {
 
 // Парсинг длительности из текста (для VK)
 function parseDurationFromText(text: string): number {
-  // Ищем паттерны типа "2:15:30", "1ч 30м", "135 мин", "90 минут"
   const hoursMinutesMatch = text.match(/(\d+)\s*[чh]\s*(\d+)\s*[мm]/i);
   if (hoursMinutesMatch) {
     return parseInt(hoursMinutesMatch[1]) * 3600 + parseInt(hoursMinutesMatch[2]) * 60;
@@ -53,10 +52,8 @@ function parseDurationFromText(text: string): number {
   const timeMatch = text.match(/(\d+):(\d+)(?::(\d+))?/);
   if (timeMatch) {
     if (timeMatch[3]) {
-      // HH:MM:SS
       return parseInt(timeMatch[1]) * 3600 + parseInt(timeMatch[2]) * 60 + parseInt(timeMatch[3]);
     } else {
-      // MM:SS или HH:MM (если первое число > 60, то это минуты)
       const first = parseInt(timeMatch[1]);
       const second = parseInt(timeMatch[2]);
       if (first > 60) {
@@ -84,7 +81,7 @@ async function searchYouTube(query: string, minDuration: number = 2400): Promise
     searchUrl.searchParams.set('q', `${query} полный фильм`);
     searchUrl.searchParams.set('type', 'video');
     searchUrl.searchParams.set('videoDuration', 'long');
-    searchUrl.searchParams.set('maxResults', '10');
+    searchUrl.searchParams.set('maxResults', '15');
     searchUrl.searchParams.set('key', apiKey);
 
     const response = await fetch(searchUrl.toString());
@@ -132,96 +129,67 @@ async function searchVKVideo(query: string, minDuration: number = 2400): Promise
   try {
     const zai = await ZAI.create();
     
-    // Ищем видео в VK через web search
-    const searchResult = await zai.functions.invoke("web_search", {
-      query: `site:vk.com/video "${query}" полный фильм`,
-      num: 20
-    });
-
-    if (!searchResult || !Array.isArray(searchResult)) {
-      return [];
-    }
-
-    const results: VideoResult[] = [];
-    
-    for (const item of searchResult) {
-      // Проверяем что это видео VK
-      const vkVideoMatch = item.url.match(/vk\.com\/video(-?\d+)_(\d+)/);
-      if (!vkVideoMatch) continue;
-
-      const ownerId = vkVideoMatch[1];
-      const videoId = vkVideoMatch[2];
-      
-      // Парсим длительность из сниппета
-      const duration = parseDurationFromText(item.snippet || '');
-      
-      // Пропускаем короткие видео
-      if (duration > 0 && duration < minDuration) continue;
-      
-      // Если длительность не найдена в сниппете, всё равно добавляем (возможно это длинное видео)
-      const estimatedDuration = duration > 0 ? duration : minDuration;
-
-      results.push({
-        id: `vk_${ownerId}_${videoId}`,
-        title: item.name || `${query} - VK Video`,
-        duration: estimatedDuration,
-        durationText: duration > 0 ? formatDuration(duration) : '> 40 мин',
-        thumbnail: `https://vk.com/images/camera_200.png`,
-        source: 'vk' as const,
-        embedUrl: `https://vk.com/video_ext.php?oid=${ownerId}&id=${videoId}&hd=2&autoplay=1`
-      });
-    }
-
-    return results.slice(0, 5);
-  } catch (error) {
-    console.error('VK search error:', error);
-    return [];
-  }
-}
-
-// Invidious API (альтернатива YouTube)
-async function searchInvidious(query: string, minDuration: number = 2400): Promise<VideoResult[]> {
-  try {
-    const instances = [
-      'https://vid.puffyan.us',
-      'https://invidious.snopyta.org',
-      'https://yewtu.be'
+    // Ищем видео в VK через web search с разными запросами
+    const searchQueries = [
+      `site:vk.com/video "${query}" фильм`,
+      `site:vk.com/video ${query} полный`,
+      `site:vk.com/video "${query}" HD`,
     ];
 
-    for (const instance of instances) {
+    const allResults: VideoResult[] = [];
+    const seenIds = new Set<string>();
+
+    for (const searchQuery of searchQueries) {
       try {
-        const searchUrl = `${instance}/api/v1/search?q=${encodeURIComponent(query + ' полный фильм')}&type=video`;
-        
-        const response = await fetch(searchUrl, {
-          headers: { 'Accept': 'application/json' }
+        const searchResult = await zai.functions.invoke("web_search", {
+          query: searchQuery,
+          num: 15
         });
 
-        if (!response.ok) continue;
+        if (!searchResult || !Array.isArray(searchResult)) {
+          continue;
+        }
 
-        const data = await response.json();
+        for (const item of searchResult) {
+          // Проверяем что это видео VK
+          const vkVideoMatch = item.url.match(/vk\.com\/video(-?\d+)_(\d+)/);
+          if (!vkVideoMatch) continue;
 
-        if (!Array.isArray(data)) continue;
+          const ownerId = vkVideoMatch[1];
+          const videoId = vkVideoMatch[2];
+          const uniqueId = `${ownerId}_${videoId}`;
+          
+          // Пропускаем дубликаты
+          if (seenIds.has(uniqueId)) continue;
+          seenIds.add(uniqueId);
+          
+          // Парсим длительность из сниппета
+          const duration = parseDurationFromText(item.snippet || '');
+          
+          // Пропускаем короткие видео
+          if (duration > 0 && duration < minDuration) continue;
+          
+          const estimatedDuration = duration > 0 ? duration : minDuration;
 
-        return data
-          .filter((item: any) => (item.lengthSeconds || 0) >= minDuration)
-          .slice(0, 5)
-          .map((item: any) => ({
-            id: item.videoId,
-            title: item.title,
-            duration: item.lengthSeconds,
-            durationText: formatDuration(item.lengthSeconds),
-            thumbnail: item.videoThumbnails?.[0]?.url || '',
-            source: 'youtube' as const,
-            embedUrl: `https://www.youtube.com/embed/${item.videoId}?autoplay=1`
-          }));
-      } catch {
+          allResults.push({
+            id: `vk_${ownerId}_${videoId}`,
+            title: item.name || `${query} - VK Video`,
+            duration: estimatedDuration,
+            durationText: duration > 0 ? formatDuration(duration) : '> 40 мин',
+            thumbnail: `https://vk.com/images/camera_200.png`,
+            source: 'vk' as const,
+            embedUrl: `https://vk.com/video_ext.php?oid=${ownerId}&id=${videoId}&hd=2&autoplay=1`
+          });
+        }
+      } catch (e) {
+        console.error('VK search query error:', e);
         continue;
       }
     }
 
-    return [];
+    return allResults.slice(0, 10);
   } catch (error) {
-    console.error('Invidious search error:', error);
+    console.error('VK search error:', error);
     return [];
   }
 }
@@ -236,20 +204,18 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Параллельный поиск - сначала VK, потом YouTube
+    console.log(`Searching for: "${query}"`);
+    
+    // Параллельный поиск - VK и YouTube
     const [vkResults, youtubeResults] = await Promise.all([
       searchVKVideo(query, minDuration),
       searchYouTube(query, minDuration)
     ]);
 
-    // Если YouTube не дал результатов, пробуем Invidious
-    let ytResults = youtubeResults;
-    if (youtubeResults.length === 0) {
-      ytResults = await searchInvidious(query, minDuration);
-    }
+    console.log(`Found: VK=${vkResults.length}, YouTube=${youtubeResults.length}`);
 
     // Объединяем - VK первые, потом YouTube
-    const allResults = [...vkResults, ...ytResults];
+    const allResults = [...vkResults, ...youtubeResults];
     const uniqueResults = allResults.filter((result, index, self) =>
       index === self.findIndex(r => r.id === result.id)
     );
