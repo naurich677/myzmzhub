@@ -365,6 +365,8 @@ function MovieDetailView({ movie, onClose }: { movie: Movie; onClose: () => void
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState('');
   const [showVideoSearch, setShowVideoSearch] = useState(false);
+  const [showLinkInput, setShowLinkInput] = useState(false);
+  const [vkLink, setVkLink] = useState('');
   const [selectedVideo, setSelectedVideo] = useState<VideoSearchResult | null>(null);
 
   // Стандартные видеобалансеры
@@ -375,6 +377,54 @@ function MovieDetailView({ movie, onClose }: { movie: Movie; onClose: () => void
     { id: 3, name: 'VidSrc SU', getUrl: (id: string) => `https://vidsrc-embed.su/embed/movie/${id}` },
     { id: 4, name: '2Embed CC', getUrl: (id: string) => `https://www.2embed.cc/embed/${id}` }
   ];
+
+  // Парсинг VK ссылки и создание видео
+  const parseVKLink = (url: string): VideoSearchResult | null => {
+    // Поддерживаемые форматы:
+    // https://vkvideo.ru/video-221158359_456241826
+    // https://vk.com/video-221158359_456241826
+    // https://vk.com/video?z=video-221158359_456241826
+    // video-221158359_456241826
+    
+    const patterns = [
+      /video(-?\d+)_(\d+)/,
+      /vk\.com\/video.*?video(-?\d+)_(\d+)/,
+      /vkvideo\.ru\/video(-?\d+)_(\d+)/,
+    ];
+    
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) {
+        const ownerId = match[1];
+        const videoId = match[2];
+        return {
+          id: `vk_${ownerId}_${videoId}`,
+          title: movie.title,
+          duration: 7200,
+          durationText: 'VK Video',
+          thumbnail: movie.poster || '',
+          source: 'vk',
+          embedUrl: `https://vk.com/video_ext.php?oid=${ownerId}&id=${videoId}&hd=2&autoplay=1`
+        };
+      }
+    }
+    return null;
+  };
+
+  // Воспроизвести по ссылке
+  const playByLink = () => {
+    if (!vkLink.trim()) return;
+    
+    const video = parseVKLink(vkLink.trim());
+    if (video) {
+      setSelectedVideo(video);
+      setIsPlaying(true);
+      setShowLinkInput(false);
+      setVkLink('');
+    } else {
+      alert('Неверная ссылка. Используйте формат:\nhttps://vkvideo.ru/video-221158359_456241826');
+    }
+  };
 
   // Поиск видео в VK и YouTube
   const searchVideos = async () => {
@@ -655,15 +705,53 @@ function MovieDetailView({ movie, onClose }: { movie: Movie; onClose: () => void
       </div>
 
       <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/90 to-transparent pb-8 z-20">
-        <button onClick={searchVideos} className="w-full h-[56px] bg-gradient-to-r from-[#0077FF] to-[#FF0000] rounded-[16px] flex items-center justify-center gap-3 font-bold text-[15px] text-white shadow-[0_4px_25px_rgba(0,119,255,0.4)] active:opacity-80 transition-colors mb-3">
-          <Search className="w-5 h-5" />
+        <button onClick={() => setShowLinkInput(true)} className="w-full h-[56px] bg-gradient-to-r from-[#0077FF] to-[#0055CC] rounded-[16px] flex items-center justify-center gap-3 font-bold text-[15px] text-white shadow-[0_4px_25px_rgba(0,119,255,0.4)] active:opacity-80 transition-colors mb-3">
+          <Link2 className="w-5 h-5" />
+          🔗 Вставить ссылку VK
+        </button>
+        <button onClick={searchVideos} className="w-full h-[44px] bg-gradient-to-r from-[#FF0000] to-[#CC0000] rounded-[12px] flex items-center justify-center gap-2 font-medium text-[13px] text-white active:opacity-80 transition-colors mb-3">
+          <Search className="w-4 h-4" />
           🔍 VK / YouTube поиск
         </button>
-        <button onClick={() => setIsPlaying(true)} className="w-full h-[44px] bg-[#1A1A1E] border border-[#2A2A2E] rounded-[12px] flex items-center justify-center gap-2 font-medium text-[13px] text-[#A0A0A0] active:bg-[#222] transition-colors">
+        <button onClick={() => setIsPlaying(true)} className="w-full h-[40px] bg-[#1A1A1E] border border-[#2A2A2E] rounded-[12px] flex items-center justify-center gap-2 font-medium text-[12px] text-[#A0A0A0] active:bg-[#222] transition-colors">
           <Play className="w-4 h-4" />
           Смотреть через плеер
         </button>
       </div>
+
+      {/* Модальное окно для вставки ссылки */}
+      {showLinkInput && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in p-4">
+          <div className="w-full max-w-sm bg-[#0A0A0C] border border-[#1A1A1E] rounded-[24px] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.8)]">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-white font-bold text-[16px]">🔗 Вставить ссылку VK</h3>
+              <button onClick={() => { setShowLinkInput(false); setVkLink(''); }} className="w-8 h-8 rounded-full bg-[#1A1A1E] flex items-center justify-center">
+                <X className="w-4 h-4 text-[#8E8E93]" />
+              </button>
+            </div>
+            
+            <input
+              value={vkLink}
+              onChange={(e) => setVkLink(e.target.value)}
+              placeholder="https://vkvideo.ru/video-221158359_456241826"
+              className="w-full bg-[#121214] border border-[#1E1E22] focus:border-[#0077FF] rounded-[12px] p-3 text-white text-[14px] outline-none placeholder-[#444] mb-3"
+            />
+            
+            <p className="text-[#666] text-[11px] mb-4">
+              Вставьте ссылку на видео из VK Video или VK.com
+            </p>
+            
+            <button
+              onClick={playByLink}
+              disabled={!vkLink.trim()}
+              className="w-full h-[48px] bg-[#0077FF] rounded-[12px] flex items-center justify-center gap-2 font-bold text-[14px] text-white active:bg-[#0055CC] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Play className="w-4 h-4" fill="currentColor" />
+              Смотреть
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
